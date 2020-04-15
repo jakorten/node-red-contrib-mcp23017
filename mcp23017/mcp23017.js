@@ -97,9 +97,14 @@ module.exports = function(RED) {
                     node.send(statusMsg)
                 })
               */
+
+              if (_pin < 8) {
+                mcp.pinMode(_pin, mcp.INPUT); //if you want them to be inputs
+                mcp.pinMode(_pin, mcp.INPUT_PULLUP); //if you want them to be pullup inputs
+              }
               node.log('Pin: ' + _pin)
               mcp.digitalRead(_pin, function(err, value) {
-                  node.log('Pin: ' + _pin + " - value" + value)
+                  node.log('Pin: ' + _pin + " - value: " + value)
               })
 
             }
