@@ -14,105 +14,113 @@
  * limitations under the License.
  **/
 
- // Updates: J.A. Korten, 2020
- // ToDo: make library more like https://github.com/bpmurray/node-red-contrib-ds18b20-sensor/blob/master/ds18b20-node/ds18b20-node.js
+// Updates: J.A. Korten, 2020
+// ToDo: make library more like https://github.com/bpmurray/node-red-contrib-ds18b20-sensor/blob/master/ds18b20-node/ds18b20-node.js
+module.exports = function(RED) {
+    var MCP = require('node-mcp23017')
+    String.prototype.endsWith = function(suffix) {
+        return this.match(suffix + '$') == suffix
+    }
 
+    function mcp23017_Node(config) {
+        RED.nodes.createNode(this, config)
 
+        this.topic = config.topic
+        if (this.topic.endsWith('/') == false) this.topic += '/'
 
+        var node = this
 
- module.exports = function(RED)
- {
- 	var MCP = require("node-mcp23017");
-		String.prototype.endsWith = function(suffix) {
-		    return this.match(suffix+"$") == suffix;
-		};
+        var icAddress = parseInt(config.address)
 
- 	function mcp23017_Node(config) {
- 		RED.nodes.createNode(this, config);
+        var mcp = new MCP({
+            address: icAddress, //all address pins pulled low
+            device: config.device, // Model B
+            debug: false,
+        })
 
- 		this.topic = config.topic;
- 		if (this.topic.endsWith("/") == false)
- 			this.topic += '/';
+        //set all GPIOS to be OUTPUTS
+        for (var i = 0; i < 16; i++) {
+            mcp.pinMode(i, mcp.OUTPUT)
+            mcp.digitalWrite(i, mcp.HIGH)
+        }
 
- 		var node   = this;
+        this.on('input', function(msg) {
+            this.status({
+                fill: 'red',
+                shape: 'dot',
+                text: 'Busy`'
+            })
+            if (msg.topic.toUpperCase().indexOf('ALL') > -1) {
+                mcp23017_set_all_outputs(msg.payload)
+                send_status_message('ALL', node.topic + pin, msg.payload)
+            } else if (msg.topic.toUpperCase().indexOf('STATUS') > -1) {
+                mcp23017_send_status()
+            } else {
+                var pin = get_pin_from_topic(msg.topic)
+                if (pin >= 0 && pin < 16) {
+                    mcp23017_process(pin, msg.payload)
+                    send_status_message(pin, node.topic + pin, msg.payload)
+                } else {
+                    node.warn(
+                        'Topic should contain a valid pin in the range 0..15: [' +
+                        msg.topic +
+                        ']'
+                    )
+                }
+            }
+            this.status({
+                fill: 'green',
+                shape: 'dot',
+                text: 'Ready'
+            })
+        })
 
- 		var icAddress = parseInt(config.address);
+        function send_status_message(pin, topic, state) {
+            var statusMsg = {}
+            statusMsg.topic = topic + pin
+            statusMsg.payload = 'Sent ' + state + ' to output ' + pin
+            node.send(statusMsg)
+        }
 
- 		var mcp = new MCP({
-  			address: icAddress, 	//all address pins pulled low
-  			device:  config.device, // Model B
-  			debug: false
-  		});
+        function mcp23017_send_status() {
+            var _pin;
+            for (_pin = 0; _pin < 16; _pin++) {
+                mcp.digitalRead(_pin, function(err, value) {
+                    node.log('Pin ' + _pin + ' - ' + value)
 
-		//set all GPIOS to be OUTPUTS
-		for (var i = 0; i < 16; i++) {
-			mcp.pinMode(i, mcp.OUTPUT);
-			mcp.digitalWrite(i, mcp.HIGH);
-		}
+                    var statusMsg = {}
+                    statusMsg.topic = node.topic + _pin
+                    statusMsg.payload = {
+                        pin: _pin,
+                        value: value ? 'OFF' : 'ON'
+                    }
+                    node.send(statusMsg)
+                })
+            }
+        }
 
-		this.on('input', function(msg) {
-			this.status({fill:"red",shape:"dot",text:"Busy`"});
-			if (msg.topic.toUpperCase().indexOf('ALL')>-1) {
-				mcp23017_set_all_outputs(msg.payload);
-				send_status_message("ALL", node.topic + pin, msg.payload);
-			}
-			else if (msg.topic.toUpperCase().indexOf('STATUS')>-1) {
-				mcp23017_send_status();
-			}
-			else {
-				var pin = get_pin_from_topic(msg.topic);
-				if (pin >= 0 && pin < 16) {
-					mcp23017_process(pin, msg.payload);
-  				send_status_message(pin, node.topic + pin, msg.payload);
-				}
-				else {
-					node.warn("Topic should contain a valid pin in the range 0..15: [" + msg.topic+ "]");
-				}
-			}
-			this.status({fill:"green",shape:"dot",text:"Ready"});
-		});
+        function mcp23017_set_all_outputs(state) {
+            for (var pin = 0; pin < 16; pin++) {
+                mcp23017_process(pin, state)
+            }
+        }
 
-		function send_status_message(pin, topic, state) {
-			var statusMsg = {}
-			statusMsg.topic   = topic + pin;
-			statusMsg.payload = "Sent " + state + " to output "+ pin;
-			node.send(statusMsg);
-		}
+        function mcp23017_process(pin, state) {
+            mcp.digitalWrite(pin, state == 'ON' ? mcp.LOW : mcp.HIGH)
+        }
 
-		function mcp23017_send_status() {
-			for (var _pin = 0; _pin < 16; _pin++) {
-				mcp.digitalRead(_pin, function(err, value) {
-					node.log("Pin " + _pin + " - " + value);
-					var statusMsg = {};
-					statusMsg.topic = node.topic + _pin;
-					statusMsg.payload = { pin: _pin, value: (value) ? "OFF" : "ON" };
-					node.send(statusMsg);
-				});
-				}
-			}
+        function get_pin_from_topic(topic) {
+            var parts = topic.split('/')
+            var index = parts.length - 1
+            return parseInt(parts[index])
+        }
 
-			function mcp23017_set_all_outputs(state) {
-				for (var pin = 0; pin < 16; pin++) {
-					mcp23017_process(pin, state);
-				}
-			}
+        /*
+          mcp.digitalRead(0, function (err, value) {
+              console.log('Pin 0', value);
+            });
+          */
+    }
 
-			function mcp23017_process(pin, state) {
-				mcp.digitalWrite(pin, (state == "ON") ? mcp.LOW : mcp.HIGH );
-			}
-
-			function get_pin_from_topic(topic) {
-				var parts = topic.split('/');
-				var index = parts.length-1;
-				return parseInt(parts[index]) ;
-			}
-
-      /*
-      mcp.digitalRead(0, function (err, value) {
-          console.log('Pin 0', value);
-        });
-      */
-		}
-
-		RED.nodes.registerType("mcp23017", mcp23017_Node);
-	}
+    RED.nodes.registerType('mcp23017', mcp23017_Node)
+}
