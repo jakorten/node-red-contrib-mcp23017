@@ -89,11 +89,10 @@ module.exports = function(RED) {
                 mcp.pinMode(_pin, mcp.INPUT_PULLUP); //if you want them to be pullup inputs
                 mcp.digitalRead(_pin, function(pin, err, value) {
                     node.log('Pin ' + pin + ' - ' + value)
-
                     var statusMsg = {}
                     statusMsg.topic = node.topic + pin
                     statusMsg.payload = {
-                        pin: _pin,
+                        pin: pin,
                         value: value ? 'OFF' : 'ON'
                     }
                     node.send(statusMsg)
