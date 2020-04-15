@@ -98,6 +98,9 @@ module.exports = function(RED) {
                 })
               */
               node.log('Pin: ' + _pin)
+              mcp.digitalRead(_pin, function(err, value) {
+                  node.log('Pin: ' + _pin + " - value" + value)
+              }
 
             }
         }
