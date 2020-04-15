@@ -85,11 +85,11 @@ module.exports = function(RED) {
         function mcp23017_send_status() {
 
             for (var _pin = 8; _pin < 16; _pin++) {
-                node.log("Pin in loop: " + _pin)
+
                 mcp.pinMode(_pin, mcp.INPUT); //if you want them to be inputs
                 mcp.pinMode(_pin, mcp.INPUT_PULLUP); //if you want them to be pullup inputs
                 mcp.digitalRead(_pin, function(pin, err, value) {
-                    node.log('Pin ' + pin + ' - ' + value)
+                    
                     var statusMsg = {}
                     statusMsg.topic = node.topic + pin
                     statusMsg.payload = {
