@@ -83,8 +83,8 @@ module.exports = function(RED) {
         }
 
         function mcp23017_send_status() {
-            var _pin;
-            for (_pin = 0; _pin < 16; _pin++) {
+            for (var _pin = 0; _pin < 16; _pin++) {
+              /*
                 mcp.digitalRead(_pin, function(err, value) {
                     node.log('Pin ' + _pin + ' - ' + value)
 
@@ -96,6 +96,9 @@ module.exports = function(RED) {
                     }
                     node.send(statusMsg)
                 })
+              */
+              node.log('Pin: ' + _pin)
+
             }
         }
 
