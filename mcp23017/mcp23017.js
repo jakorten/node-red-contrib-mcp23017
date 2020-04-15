@@ -14,6 +14,11 @@
  * limitations under the License.
  **/
 
+ // Updates: J.A. Korten, 2020
+ // ToDo: make library more like https://github.com/bpmurray/node-red-contrib-ds18b20-sensor/blob/master/ds18b20-node/ds18b20-node.js
+
+
+
 
  module.exports = function(RED)
  {
@@ -61,7 +66,7 @@
   				send_status_message(pin, node.topic + pin, msg.payload);
 				}
 				else {
-					node.warn("Topic should contain a valid pin in the rannge 0..15: [" + msg.topic+ "]");
+					node.warn("Topic should contain a valid pin in the range 0..15: [" + msg.topic+ "]");
 				}
 			}
 			this.status({fill:"green",shape:"dot",text:"Ready"});
@@ -70,17 +75,17 @@
 		function send_status_message(pin, topic, state) {
 			var statusMsg = {}
 			statusMsg.topic   = topic + pin;
-			statusMsg.payload = "Sent " + state + " to relay "+ pin;
+			statusMsg.payload = "Sent " + state + " to output "+ pin;
 			node.send(statusMsg);
 		}
 
 		function mcp23017_send_status() {
-			for (var pin =0; pin < 16; pin++) {
-				mcp.digitalRead(pin, function(err, value) {
-					node.log("Pin " + pin + " - " + value);
+			for (var _pin = 0; _pin < 16; _pin++) {
+				mcp.digitalRead(_pin, function(err, value) {
+					node.log("Pin " + _pin + " - " + value);
 					var statusMsg = {};
-					statusMsg.topic = node.topic + pin;
-					statusMsg.payload = { pin: pin, value: (value) ? "OFF" : "ON" };
+					statusMsg.topic = node.topic + _pin;
+					statusMsg.payload = { pin: _pin, value: (value) ? "OFF" : "ON" };
 					node.send(statusMsg);
 				});
 				}
@@ -101,6 +106,12 @@
 				var index = parts.length-1;
 				return parseInt(parts[index]) ;
 			}
+
+      /*
+      mcp.digitalRead(0, function (err, value) {
+          console.log('Pin 0', value);
+        });
+      */
 		}
 
 		RED.nodes.registerType("mcp23017", mcp23017_Node);
