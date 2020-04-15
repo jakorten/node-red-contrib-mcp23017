@@ -1,0 +1,20 @@
+{
+    "name"         : "node-red-contrib-mcp23017",
+    "version"      : "0.0.1",
+    "description"  : "MCP23017 controller",
+    "dependencies" : {
+		"node-mcp23017":"0.0.4"
+    },
+    "license"     : "Apache-2.0",
+    "homepage"    : "https://github.com/afulki/node-red-contrib-mcp23017",
+    "repository"  : {
+        "type":"git",
+        "url":"https://github.com/afulki/node-red-contrib-mcp23017"
+    },
+    "keywords": [ "node-red", "mcp23017", "raspberry pi", "output", "slice of pi/o" ],
+    "node-red"     : {
+        "nodes": {
+            "mcp23017": "mcp23017/mcp23017.js"
+        }
+    }
+}
